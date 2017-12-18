@@ -1,0 +1,153 @@
+---
+title: "DV_dashboard"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(ggplot2)
+library(dplyr)
+library(DT)
+odi= read.csv("D://odi.csv")
+
+```
+
+select the country { .sidebar}
+======================================================
+
+```{r}
+selectInput(inputId = "class",label = "choose the counttries",choices = c(as.character(unique(odi$Country))))
+
+
+selectInput(inputId = "class1",label = "choose the versus",choices = c("all", as.character(unique(odi$Versus))),selected = "all")
+```
+
+
+
+select the opponet 
+=====================================================
+
+
+row1 
+-----------------------------------------------------
+### total matches
+
+```{r}
+renderValueBox({ 
+data <- {
+    if (input$class1 == "all"){ 
+      data1 = filter(odi,Country == input$class)
+      } 
+       else {
+      data1 = filter(odi,Country == input$class & Versus == input$class1)
+    }
+    data1
+  }
+ totalmatches = data %>% summarise( totalmatches = n_distinct(MatchDate))
+ valueBox(totalmatches,icon = "fa-flag",color = "red")
+})
+```
+
+### total runs
+
+```{r}
+renderValueBox({
+  data = {
+    if ( input$class1 =="all"){
+      data1= filter(odi,Country == input$class)
+      }
+      else { 
+      data1 = filter(odi,Country == input$class & Versus== input$class1)}
+    data1
+  }
+  totalruns = data %>% summarise(totalruns= sum(Runs))
+  valueBox(totalruns,icon= "fa-flag",color = "blue")
+})
+```
+
+### average score rate
+```{r}
+renderValueBox({
+  data= {
+    if(input$class1 == "all"){
+      data1= filter(odi,Country ==input$class)
+      }
+      else {
+      data1 = filter(odi,Country == input$class & Versus == input$class1 )
+    }
+    data1
+  }
+  score_rate = data %>% summarise(score_rate = round(mean(ScoreRate),2))
+  valueBox(score_rate,icon = "fa-flag",color = "green")
+})
+```
+
+
+
+
+row 
+---------------------------------------------------
+### top 10 players
+
+```{r}
+renderPlot({
+  data={
+    if(input$class1 == 'all'){
+      data1=filter(odi,Country == input$class)
+    }
+    else{
+      data1=filter(odi,Country == input$class & Versus == input$class1)
+    }
+    data1
+  }
+  total=data %>% group_by(Player) %>% summarise(totalruns=sum(Runs)) %>% arrange(-totalruns) %>% top_n(10)
+  ggplot(total,aes(Player,totalruns))+geom_bar(stat = "identity",fill="blue")+theme_bw()+theme(axis.text.x = element_text(angle = 90))
+  })
+```
+
+
+
+
+
+table 
+========================================================
+
+```{r}
+DT::renderDataTable({
+ data={
+   if(input$class1 == 'all'){
+     data1=filter(odi,Country == input$class)
+   }
+   else{
+     
+     data1=filter(odi,Country == input$class & Versus == input$class1)
+   }
+   data1
+ }
+ d=data %>% group_by(Versus) %>% summarise(Numberofmatchs=n_distinct(MatchDate),Total.Runs =sum(Runs),Average.Score.Rate = round(mean(ScoreRate),1))
+ DT::datatable(d,options = list(pagelength = 5))
+})
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
